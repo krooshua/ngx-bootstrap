@@ -4,23 +4,21 @@
 import { DaysCalendarModel, MonthViewOptions } from '../models/index';
 import { getFirstDayOfMonth } from '../../bs-moment/utils/date-getters';
 import { getStartingDayOfCalendar } from '../utils/bs-calendar-utils';
-import { shiftDate } from '../../bs-moment/utils/date-setters';
+import { createMatrix } from '../utils/matrix-utils';
 
-export function calcDaysCalendar(date: Date, options: MonthViewOptions): DaysCalendarModel {
-  const firstDay = getFirstDayOfMonth(date);
+export function calcDaysCalendar(startingDate: Date, options: MonthViewOptions): DaysCalendarModel {
+  const firstDay = getFirstDayOfMonth(startingDate);
+  const initialDate = getStartingDayOfCalendar(firstDay, options);
 
-  let prevValue = getStartingDayOfCalendar(firstDay, options);
-  const daysCalendar = new Array(options.height);
-  for (let i = 0; i < options.height; i++) {
-    daysCalendar[i] = new Array(options.width);
-    for (let j = 0; j < options.width; j++) {
-      daysCalendar[i][j] = prevValue;
-      prevValue = shiftDate(prevValue, {day: 1});
-    }
-  }
+  const matrixOptions = {
+    width: options.width,
+    height: options.height,
+    initialDate, shift: {day: 1}
+  };
+  const daysMatrix = createMatrix<Date>(matrixOptions, date => date);
 
   return {
-    daysMatrix: daysCalendar,
+    daysMatrix,
     month: firstDay
   };
 }

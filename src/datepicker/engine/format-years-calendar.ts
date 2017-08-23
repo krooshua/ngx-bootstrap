@@ -3,33 +3,36 @@ import {
 } from '../models/index';
 import { shiftDate } from '../../bs-moment/utils/date-setters';
 import { formatDate } from '../../bs-moment/format';
+import { TimeUnit } from '../../bs-moment/types';
+import { createMatrix } from '../utils/matrix-utils';
 
 const height = 4;
 const width = 4;
 export const yearsPerCalendar = height * width;
+const initialShift = (Math.floor(yearsPerCalendar / 2) - 1) * -1;
+const shift = {year: 1};
 
 export function formatYearsCalendar(viewDate: Date, formatOptions: DatepickerFormatOptions): YearsCalendarViewModel {
 
-  let prevValue = viewDate;
-  const yearsMatrix: YearViewModel[][] = new Array(height);
-  for (let i = 0; i < height; i++) {
-    yearsMatrix[i] = new Array(width);
-    for (let j = 0; j < width; j++) {
-      yearsMatrix[i][j] = {
-        date: prevValue,
-        label: formatDate(prevValue, formatOptions.yearLabel, formatOptions.locale)
-      };
-      prevValue = shiftDate(prevValue, {year: 1});
-    }
-  }
-
-  const from = formatDate(viewDate, formatOptions.yearTitle, formatOptions.locale);
-  const to = formatDate(shiftDate(prevValue, {year: -1}), formatOptions.yearTitle, formatOptions.locale);
-  const yearsRangeTitle = `${from} - ${to}`;
+  const initialDate = shiftDate(viewDate, {year: initialShift});
+  const matrixOptions = {width, height, initialDate, shift};
+  const yearsMatrix = createMatrix<YearViewModel>(matrixOptions,
+    date => ({
+      date,
+      label: formatDate(date, formatOptions.yearLabel, formatOptions.locale)
+    }));
+  const yearTitle = formatYearRangeTitle(yearsMatrix, formatOptions);
 
   return {
     years: yearsMatrix,
     monthTitle: '',
-    yearTitle: yearsRangeTitle
+    yearTitle
   };
+}
+
+function formatYearRangeTitle(yearsMatrix: YearViewModel[][], formatOptions: DatepickerFormatOptions): string {
+  const from = formatDate(yearsMatrix[0][0].date, formatOptions.yearTitle, formatOptions.locale);
+  const to = formatDate(yearsMatrix[height - 1][width - 1].date, formatOptions.yearTitle, formatOptions.locale);
+
+  return `${from} - ${to}`;
 }

@@ -4,27 +4,24 @@ import {
 import { startOf } from '../../bs-moment/utils/start-end-of';
 import { shiftDate } from '../../bs-moment/utils/date-setters';
 import { formatDate } from '../../bs-moment/format';
+import { createMatrix } from '../utils/matrix-utils';
+
+const height = 4;
+const width = 3;
+const shift = {month: 1};
 
 export function formatMonthsCalendar(viewDate: Date, formatOptions: DatepickerFormatOptions): MonthsCalendarViewModel {
-  const height = 4;
-  const width = 3;
-
-  let prevValue = startOf(viewDate, 'year');
-  const monthMatrix: MonthViewModel[][] = new Array(height);
-  for (let i = 0; i < height; i++) {
-    monthMatrix[i] = new Array(width);
-    for (let j = 0; j < width; j++) {
-      monthMatrix[i][j] = {
-        date: prevValue,
-        label: formatDate(prevValue, formatOptions.monthLabel, formatOptions.locale)
-      };
-      prevValue = shiftDate(prevValue, {month: 1});
-    }
-  }
+  const initialDate = startOf(viewDate, 'year');
+  const matrixOptions = {width, height, initialDate, shift};
+  const monthMatrix = createMatrix<MonthViewModel>(matrixOptions,
+    date => ({
+      date,
+      label: formatDate(date, formatOptions.monthLabel, formatOptions.locale)
+    }));
 
   return {
     months: monthMatrix,
     monthTitle: '',
-    yearTitle: formatDate(prevValue, formatOptions.yearTitle, formatOptions.locale)
+    yearTitle: formatDate(viewDate, formatOptions.yearTitle, formatOptions.locale)
   };
 }

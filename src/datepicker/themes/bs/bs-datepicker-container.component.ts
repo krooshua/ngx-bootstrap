@@ -1,14 +1,28 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { BsDatepickerStore } from '../../reducer/bs-datepicker.store';
-import { BsDatepickerActions } from '../../reducer/bs-datepicker.actions';
-import {
-  BsDatepickerViewMode, BsNavigationEvent, DatepickerRenderOptions,
-  DayHoverEvent, DaysCalendarViewModel, DayViewModel, MonthHoverEvent,
-  MonthsCalendarViewModel, YearHoverEvent,
-  YearsCalendarViewModel
-} from '../../models/index';
+
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/debounceTime';
+import 'rxjs/add/operator/distinctUntilChanged';
+import 'rxjs/add/observable/combineLatest';
+
 import { Observable } from 'rxjs/Observable';
+import { getFullYear, getMonth } from '../../../bs-moment/utils/date-getters';
+import {
+  BsDatepickerViewMode,
+  BsNavigationEvent,
+  DatepickerRenderOptions,
+  DayHoverEvent,
+  DaysCalendarViewModel,
+  DayViewModel,
+  MonthHoverEvent,
+  MonthsCalendarViewModel,
+  MonthViewModel,
+  YearHoverEvent,
+  YearsCalendarViewModel,
+  YearViewModel
+} from '../../models/index';
+import { BsDatepickerActions } from '../../reducer/bs-datepicker.actions';
+import { BsDatepickerStore } from '../../reducer/bs-datepicker.store';
 import { BsCustomDates } from './bs-custom-dates-view.component';
 
 @Component({
@@ -16,11 +30,11 @@ import { BsCustomDates } from './bs-custom-dates-view.component';
   providers: [BsDatepickerStore],
   template: `
     <!-- days calendar view mode -->
-    <div class="bs-datepicker theme-green">
+    <div class="bs-datepicker theme-green" *ngIf="viewMode">
       <div class="bs-datepicker-container">
 
         <!--calendars-->
-        <div class="bs-calendar-container" [ngSwitch]="viewMode | async">
+        <div class="bs-calendar-container" [ngSwitch]="viewMode">
           <!--days calendar-->
           <div *ngSwitchCase="'day'">
             <bs-days-calendar-view
@@ -55,6 +69,7 @@ import { BsCustomDates } from './bs-custom-dates-view.component';
               (onNavigate)="navigateTo($event)"
               (onViewMode)="changeViewMode($event)"
               (onHover)="yearHoverHandler($event)"
+              (onSelect)="yearSelectHandler($event)"
             ></bs-years-calendar-view>
           </div>
 
@@ -86,7 +101,7 @@ export class BsDatepickerContainerComponent {
 
   @Output() valueChange = new EventEmitter<Date>();
 
-  viewMode: Observable<BsDatepickerViewMode>;
+  viewMode: BsDatepickerViewMode;
   daysCalendar: Observable<DaysCalendarViewModel[]>;
   monthsCalendar: Observable<MonthsCalendarViewModel[]>;
   yearsCalendar: Observable<YearsCalendarViewModel[]>;
@@ -118,7 +133,7 @@ export class BsDatepickerContainerComponent {
     this.options = this._bsDatepickerStore.select(state => state.renderOptions)
       .filter(options => !!options);
 
-    this.viewMode = this._bsDatepickerStore.select(state => state.viewMode);
+    // this.viewMode = this._bsDatepickerStore.select(state => state.viewMode);
 
     // set render options
     this._bsDatepickerStore.dispatch(this._actions.renderOptions({
@@ -126,19 +141,30 @@ export class BsDatepickerContainerComponent {
       showWeekNumbers: true
     }));
 
-    // recalculate on view mode change
-    this._bsDatepickerStore.select(state => state.viewMode)
-      .subscribe(() => this._bsDatepickerStore.dispatch(this._actions.calculate()));
-
     // on selected date change
     this._bsDatepickerStore.select(state => state.selectedDate)
       .subscribe(date => this.valueChange.emit(date));
 
     // TODO: extract effects
+    Observable.combineLatest(
+      this._bsDatepickerStore.select(state => state.viewMode),
+      this._bsDatepickerStore.select(state => state.viewDate)
+    )
+      .map(latest => ({viewMode: latest[0], viewDate: +latest[1]}))
+      .distinctUntilChanged()
+      // .debounce(1)
+      .subscribe((latest: any) => {
+        this._bsDatepickerStore.dispatch(this._actions.calculate());
+        this.viewMode = latest.viewMode;
+      });
+    // recalculate on view mode change
+    this._bsDatepickerStore.select(state => state.viewMode);
+    // .subscribe(() => this._bsDatepickerStore.dispatch(this._actions.calculate()));
+
     // calculate month model on view model change
     this._bsDatepickerStore
-      .select(state => state.viewDate)
-      .subscribe(() => this._bsDatepickerStore.dispatch(this._actions.calculate()));
+      .select(state => state.viewDate);
+    // .subscribe(() => this._bsDatepickerStore.dispatch(this._actions.calculate()));
 
     // format calendar values on month model change
     this._bsDatepickerStore
@@ -195,6 +221,10 @@ export class BsDatepickerContainerComponent {
     event.day.isHovered = event.isHovered;
   }
 
+  monthHoverHandler(event: MonthHoverEvent): void {
+    event.month.isHovered = event.isHovered;
+  }
+
   daySelectHandler(day: DayViewModel): void {
     if (day.isOtherMonth) {
       return;
@@ -202,12 +232,18 @@ export class BsDatepickerContainerComponent {
     this._bsDatepickerStore.dispatch(this._actions.select(day.date));
   }
 
-  monthHoverHandler(event: MonthHoverEvent): void {
-    event.month.isHovered = event.isHovered;
+  monthSelectHandler(event: MonthViewModel): void {
+    this._bsDatepickerStore.dispatch(this._actions.navigateTo({
+      unit: {month: getMonth(event.date)},
+      viewMode: 'day'
+    }));
   }
 
-  monthSelectHandler(event: any): void {
-    console.log(event);
+  yearSelectHandler(event: YearViewModel): void {
+    this._bsDatepickerStore.dispatch(this._actions.navigateTo({
+      unit: {year: getFullYear(event.date)},
+      viewMode: 'month'
+    }));
   }
 
   yearHoverHandler(event: YearHoverEvent): void {

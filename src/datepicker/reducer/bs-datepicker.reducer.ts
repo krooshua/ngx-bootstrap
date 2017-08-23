@@ -6,7 +6,7 @@ import { BsDatepickerActions } from './bs-datepicker.actions';
 import { calcDaysCalendar } from '../engine/calc-days-calendar';
 import { formatDaysCalendar } from '../engine/format-days-calendar';
 import { flagDaysCalendar } from '../engine/flag-days-calendar';
-import { shiftDate } from '../../bs-moment/utils/date-setters';
+import { shiftDate, setDate } from '../../bs-moment/utils/date-setters';
 import { canSwitchMode } from '../engine/view-mode';
 import { formatMonthsCalendar } from '../engine/format-months-calendar';
 import { flagMonthsCalendar } from '../engine/flag-months-calendar';
@@ -14,8 +14,10 @@ import {
   formatYearsCalendar, yearsPerCalendar
 } from '../engine/format-years-calendar';
 import { flagYearsCalendar } from '../engine/flag-years-calendar';
+import { BsViewNavigationEvent } from '../models/index';
 
 export function bsDatepickerReducer(state = initialDatepickerState, action: Action): BsDatepickerState {
+  console.log(action)
   switch (action.type) {
     case(BsDatepickerActions.CALCULATE): {
       return calculateReducer(state);
@@ -35,7 +37,12 @@ export function bsDatepickerReducer(state = initialDatepickerState, action: Acti
     }
 
     case(BsDatepickerActions.NAVIGATE_TO): {
-      return state;
+      const payload: BsViewNavigationEvent = action.payload;
+
+      const viewDate = setDate(state.viewDate, payload.unit);
+      const newState = {viewDate, viewMode: payload.viewMode};
+
+      return Object.assign({}, state, newState);
     }
 
     case(BsDatepickerActions.CHANGE_VIEWMODE): {
@@ -52,7 +59,15 @@ export function bsDatepickerReducer(state = initialDatepickerState, action: Acti
     }
 
     case(BsDatepickerActions.SELECT): {
-      return Object.assign({}, state, {selectedDate: action.payload});
+      const newState = {
+        selectedDate: action.payload,
+        viewDate: state.viewDate
+      };
+      if (action.payload) {
+        newState.viewDate = action.payload;
+      }
+
+      return Object.assign({}, state, newState);
     }
 
     case(BsDatepickerActions.RENDER_OPTIONS): {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
-  BsDatepickerViewMode, DatepickerRenderOptions, DayHoverEvent
+  BsDatepickerViewMode, BsViewNavigationEvent, DatepickerRenderOptions, DayHoverEvent
 } from '../models/index';
 import { Action } from '../../mini-ngrx/index';
 import { TimeUnit } from '../../bs-moment/types';
@@ -39,10 +39,10 @@ export class BsDatepickerActions {
     };
   }
 
-  navigateTo(dateChange: TimeUnit): Action {
+  navigateTo(event: BsViewNavigationEvent): Action {
     return {
-      type: BsDatepickerActions.NAVIGATE_OFFSET,
-      payload: dateChange
+      type: BsDatepickerActions.NAVIGATE_TO,
+      payload: event
     };
   }
 

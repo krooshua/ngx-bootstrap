@@ -127,7 +127,7 @@ export interface BsNavigationEvent {
 }
 
 export interface BsViewNavigationEvent {
-  dateChange?: TimeUnit;
+  unit?: TimeUnit;
   viewMode: BsDatepickerViewMode;
 }
 
