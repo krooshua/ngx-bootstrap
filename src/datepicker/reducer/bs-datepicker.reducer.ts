@@ -17,7 +17,9 @@ import { flagYearsCalendar } from '../engine/flag-years-calendar';
 import { BsViewNavigationEvent } from '../models/index';
 
 export function bsDatepickerReducer(state = initialDatepickerState, action: Action): BsDatepickerState {
-  console.log(action)
+  if (!(/hover|flag/.test(action.type))){
+    console.log(action);
+  }
   switch (action.type) {
     case(BsDatepickerActions.CALCULATE): {
       return calculateReducer(state);
